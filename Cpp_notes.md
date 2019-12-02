@@ -59,7 +59,7 @@
 
 ---
 
-## Chapter 6 函数和递归
+# Chapter 6 函数和递归
 
 1. 函数签名：  
     函数声明中的函数名和实参类型称为函数签名（不包含返回类型）。如果两个函数函数名相同，参数类型、参数个数都相同，只有返回类型不同，会被拒绝重载。
@@ -188,7 +188,7 @@
 
 ---
 
-## Chapter 7 类模板array和vector,异常捕获
+# Chapter 7 类模板array和vector,异常捕获
 
 1. 求array对象元素之和
     ```cpp
@@ -307,10 +307,31 @@
     - pass
 
 ---
-## Chapter 8 指针
-
-1. 
+# Chapter 8 指针
 
 
+---
+# 其他笔记
 
+1. C++的stl中的哈希表  
+    STL中，map 对应的数据结构是 红黑树。红黑树是一种近似于平衡的二叉查找树，里面的数据是有序的。在红黑树上做查找操作的时间复杂度为 O(logN)。而 unordered_map 对应 哈希表，哈希表的特点就是查找效率高，时间复杂度为常数级别 O(1)， 而额外空间复杂度则要高出许多。所以对于需要高效率查询的情况，使用 unordered_map 容器。而如果对内存大小比较敏感或者数据存储要求有序的话，则可以用 map 容器。
+
+    ```cpp
+    #include <iostream>
+    #include <unordered_map>
+    #include <string>
+    int main(int argc, char **argv) {
+        std::unordered_map<int, std::string> map;
+        map.insert(std::make_pair(1, "Scala"));
+        map.insert(std::make_pair(2, "Haskell"));
+        map.insert(std::make_pair(3, "C++"));
+        map.insert(std::make_pair(6, "Java"));
+        map.insert(std::make_pair(14, "Erlang"));
+        std::unordered_map<int, std::string>::iterator it;
+        if ((it = map.find(6)) != map.end()) {
+            std::cout << it->second << std::endl;
+        }
+        return 0;
+    }
+    ```
 
