@@ -335,3 +335,13 @@
     }
     ```
 
+2. 用transform转换字符串大小写
+    ```cpp
+    transform(s.begin(), s.end(), s.begin(), ::tolower);
+    ```
+
+3.  ASCII 码范围
+    - a-z：97-122
+    - A-Z：65-90
+    - 0-9：48-57
+
