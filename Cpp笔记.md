@@ -309,6 +309,8 @@
 ---
 # Chapter 8 指针
 
+pass
+
 
 ---
 # 其他笔记
@@ -344,4 +346,123 @@
     - a-z：97-122
     - A-Z：65-90
     - 0-9：48-57
+
+4. 排序函数 <algorithm>  
+    - std::sort(vector.begin(), vector.end(), function/object)，第三个参数可以传函数指针，对象，或者什么都不传（默认的compare函数）  
+    - 对数组：std::sort(a[0], a[10])
+
+5. 堆 （优先队列） <queue>::priority_queue
+    例子：找到数组中第k大的数 (leetcode 215)
+    ```cpp
+        priority_queue<int, vector<int>, greater<int>> store;
+        //堆中维持k个最大数
+        for (int i = 0; i < numsSize; i++)
+        {
+            store.push(nums[i]);
+            if (int(store.size()) > k)
+            {
+                store.pop();
+            }
+        }
+
+        result = store.top();
+    ```
+
+
+
+---
+
+# STL库的一些常用数据结构和相关操作  
+
+## \<string\>常用操作
+
+1. 获取长度
+    ```cpp
+    str.length()
+    ```
+
+2. 切片
+    ```cpp
+    str.substr(a, len);  //接受两个int，从a开始，切出共len个字符的子串
+    ```
+
+3. string和数值类型相互转换
+    ```cpp
+    int num = std::stoi(str);       //string -> int
+    double dnum = std::stod(str);   //string -> double
+    ```
+    ```cpp
+    string str = std::to_string(...)  // int,double... -> string
+    ```
+
+
+
+## \<vector\>常用操作
+1. 声明一维和二维向量
+    ```cpp
+    //一维
+    int size = 10;
+    vector<int> vec(size);
+    //二维
+    int row = 5, col = 10;
+    vector<vector<int>> matrix(row, vector<int>(col));
+    ```
+
+2. 排序
+    ```cpp
+    sort(vec.begin(), vec.end(), static compare);
+    ```
+3. 切片
+    ```cpp
+    vector<int> v2 = vector<int>(v1.begin(), v1.begin()+10);
+    ```
+4. 获取最后一个元素
+    ```cpp
+    vec[vec.size()-1];  //直接返回引用
+    vec.at()       //直接返回引用，跟用下标一样
+    vec.back();    //返回指向最后一个元素的引用
+    vec.end()-1;   //返回一个指向最后一个元素的迭代器
+    vec.rbegin();  //返回反向迭代器
+    ```
+5. 删除最后一个元素 
+    ```cpp
+    vec.pop_back();
+    ```
+    
+
+## \<unordered_map\>常用操作
+1. 遍历
+    ```cpp
+    for (auto iter = groups.begin(); iter != groups.end(); iter++){
+            auto key = iter->first;
+            auto val = iter->second;
+    }
+    ```
+
+2. 添加
+    ```cpp
+        map.insert(std::make_pair(key, val));
+    ```
+
+3. 修改
+    ```cpp
+        map[key] = newVal;  //最好是在确保该key存在的情况下再做此操作
+    ```
+
+4. 查找 （使用迭代器）
+    ```cpp
+    std::unordered_map<int, std::string>::iterator iter;
+    if ((iter = map.find(key)) != map.end()) {
+        std::cout << iter->second << std::endl;
+    }
+    ```
+    或者使用at()，但是如果该key不存在会抛出OOR异常
+
+5. 删除
+    ```cpp
+    map.erase(key);
+    ```
+    不要轻易使用map[key]，因为如果该Key不存在，会被自动创建。
+
+## 
 
