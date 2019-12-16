@@ -464,5 +464,20 @@ pass
     ```
     不要轻易使用map[key]，因为如果该Key不存在，会被自动创建。
 
-## 
+## \<queue> 常用操作
+1. 初始化
+    ```cpp
+    std::queue<int> first;            // empty queue
+    std::queue<int> second (mydeck);  // queue initialized to copy of deque
+    ```
+
+2. 成员函数
+    - empty()
+    - size()
+    - front()  访问队首元素
+    - back()   访问队尾元素
+    - push()
+    - pop()
+
+
 
