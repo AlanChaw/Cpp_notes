@@ -479,3 +479,12 @@ pass
     - push()
     - pop()
 
+## 随机数   
+```cpp
+/** Get a random element from the collection. */
+int getRandom() {
+    int s = nums.size();
+    int r = rand() % s;
+    return nums[r];
+}
+```
