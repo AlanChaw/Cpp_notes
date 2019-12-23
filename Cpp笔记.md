@@ -367,7 +367,7 @@ pass
 
         result = store.top();
     ```
-
+    使用greater<int> 为小顶堆，否则为大顶堆，或使用自己的比较函数
 
 
 ---
