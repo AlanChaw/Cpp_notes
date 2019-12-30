@@ -372,7 +372,7 @@ pass
 
 ---
 
-# STL库的一些常用数据结构和相关操作  
+# STL库的一些常用容器和相关操作  
 
 ## \<string\>常用操作
 
@@ -455,6 +455,9 @@ pass
     if ((iter = map.find(key)) != map.end()) {
         std::cout << iter->second << std::endl;
     }
+
+    //或
+    if(map.count(key) == 0)
     ```
     或者使用at()，但是如果该key不存在会抛出OOR异常
 
@@ -479,6 +482,38 @@ pass
     - push()
     - pop()
 
+## \<deque> 双向队列，常用操作
+
+1. 成员函数
+    - at() 访问元素
+    - push_front()
+    - pop_front()
+    - push_back()
+    - pop_back()
+    - front()   队首元素引用
+    - back()    队尾元素引用
+    - size()
+    - empty()
+
+## \<set> 和 \<unordered_set>
+
+- 函数
+    - insert()  插入
+    - erase()   删除
+
+- 区别在于set将数据有序存储，插入和查询的时间复杂度为O(logn)，一般是用红黑树实现
+- 而unordered_set中数据是无序的，插入和查询时间复杂度为O(1)，跟map 和 unordered_map的关系一样，map中是按key排序的，支持运算符重载。
+- 自动排序的优点是使得搜寻元素时具有良好的性能，具有对数时间复杂度。但是造成的一个缺点就是：
+    - 不能直接改变元素值。因为这样会打乱原有的顺序
+    - 改变元素值的方法是：先删除旧元素，再插入新元素。
+    - 存取元素只能通过迭代器，从迭代器的角度看，元素值是常数。
+
+## \<multiset>
+
+- set和multiset的区别是：set插入的元素不能相同，但是multiset可以相同。
+
+
+
 ## 随机数   
 ```cpp
 /** Get a random element from the collection. */
@@ -488,3 +523,22 @@ int getRandom() {
     return nums[r];
 }
 ```
+
+## 结构体中的运算符重载
+注意
+```cpp
+struct Node{
+    int id;
+    int weight;
+    Node(int _id, int _weight){
+        id = _id;
+        weight = _weight;
+    }
+
+    bool operator< (const Node b) const{    //注意这里的const
+        return weight > b.weight;
+    }
+};
+```
+
+# C++ 迭代器
