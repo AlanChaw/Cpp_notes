@@ -1,6 +1,7 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
+
 - [1. 类、对象、字符串](#1-%E7%B1%BB%E5%AF%B9%E8%B1%A1%E5%AD%97%E7%AC%A6%E4%B8%B2)
 - [2. 函数和递归](#2-%E5%87%BD%E6%95%B0%E5%92%8C%E9%80%92%E5%BD%92)
   - [2.1 函数原型和实参类型的强制转换](#21-%E5%87%BD%E6%95%B0%E5%8E%9F%E5%9E%8B%E5%92%8C%E5%AE%9E%E5%8F%82%E7%B1%BB%E5%9E%8B%E7%9A%84%E5%BC%BA%E5%88%B6%E8%BD%AC%E6%8D%A2)
@@ -19,7 +20,14 @@
   - [4.1 使用指针的按引用传递](#41-%E4%BD%BF%E7%94%A8%E6%8C%87%E9%92%88%E7%9A%84%E6%8C%89%E5%BC%95%E7%94%A8%E4%BC%A0%E9%80%92)
   - [4.2 内置数组和指针](#42-%E5%86%85%E7%BD%AE%E6%95%B0%E7%BB%84%E5%92%8C%E6%8C%87%E9%92%88)
   - [4.3 sizeof 运算符](#43-sizeof-%E8%BF%90%E7%AE%97%E7%AC%A6)
+  - [4.4 指针表达式和算术运算](#44-%E6%8C%87%E9%92%88%E8%A1%A8%E8%BE%BE%E5%BC%8F%E5%92%8C%E7%AE%97%E6%9C%AF%E8%BF%90%E7%AE%97)
+  - [4.5 基于指针的字符串(C风格)](#45-%E5%9F%BA%E4%BA%8E%E6%8C%87%E9%92%88%E7%9A%84%E5%AD%97%E7%AC%A6%E4%B8%B2c%E9%A3%8E%E6%A0%BC)
   - [其他](#%E5%85%B6%E4%BB%96)
+- [5. 类](#5-%E7%B1%BB)
+  - [5.1 实例研究](#51-%E5%AE%9E%E4%BE%8B%E7%A0%94%E7%A9%B6)
+  - [5.2 C++11 委托构造函数:](#52-c11-%E5%A7%94%E6%89%98%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0)
+  - [5.3 析构函数](#53-%E6%9E%90%E6%9E%84%E5%87%BD%E6%95%B0)
+  - [5.4 不同作用域下构造函数和析构函数的调用时机](#54-%E4%B8%8D%E5%90%8C%E4%BD%9C%E7%94%A8%E5%9F%9F%E4%B8%8B%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0%E5%92%8C%E6%9E%90%E6%9E%84%E5%87%BD%E6%95%B0%E7%9A%84%E8%B0%83%E7%94%A8%E6%97%B6%E6%9C%BA)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
