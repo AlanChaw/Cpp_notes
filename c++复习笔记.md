@@ -1,4 +1,5 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
 - [1. 类、对象、字符串](#1-%E7%B1%BB%E5%AF%B9%E8%B1%A1%E5%AD%97%E7%AC%A6%E4%B8%B2)
 - [2. 函数和递归](#2-%E5%87%BD%E6%95%B0%E5%92%8C%E9%80%92%E5%BD%92)
@@ -13,9 +14,12 @@
 - [3. 类模板array和vector](#3-%E7%B1%BB%E6%A8%A1%E6%9D%BFarray%E5%92%8Cvector)
   - [3.1 array对象例子](#31-array%E5%AF%B9%E8%B1%A1%E4%BE%8B%E5%AD%90)
   - [3.2 C++11 基于范围的for语句](#32-c11-%E5%9F%BA%E4%BA%8E%E8%8C%83%E5%9B%B4%E7%9A%84for%E8%AF%AD%E5%8F%A5)
-  - [3.3 多维array对象](#33-%E5%A4%9A%E7%BB%B4array%E5%AF%B9%E8%B1%A1)
   - [3.4 vector](#34-vector)
 - [4. 指针](#4-%E6%8C%87%E9%92%88)
+  - [4.1 使用指针的按引用传递](#41-%E4%BD%BF%E7%94%A8%E6%8C%87%E9%92%88%E7%9A%84%E6%8C%89%E5%BC%95%E7%94%A8%E4%BC%A0%E9%80%92)
+  - [4.2 内置数组和指针](#42-%E5%86%85%E7%BD%AE%E6%95%B0%E7%BB%84%E5%92%8C%E6%8C%87%E9%92%88)
+  - [4.3 sizeof 运算符](#43-sizeof-%E8%BF%90%E7%AE%97%E7%AC%A6)
+  - [其他](#%E5%85%B6%E4%BB%96)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -72,7 +76,7 @@
 
 -  __函数声明为const__，告诉编译器这个函数不能修改调用它的对象
 
-- __explicit关键字__：用来修饰构造函数，只能用于单个参数的构造函数，被修饰的类不能发生隐式类型转换吗，只能做显式类型转换。
+- __explicit关键字__：用来修饰构造函数，被修饰的类不能发生隐式类型转换，只能做显式类型转换。
 
 2. 头文件中不应包含using声明，要使用std::， 但是cpp文件中可以
 
@@ -379,22 +383,8 @@
     items after modification: 2 4 6 8 10 
     ```
 
-2. array对象的排序与查找  
-    - 标准库sort()和binary_search()函数, 在`<algorithm`>头文件中
-    ```cpp
-    array<string, ARRAY_SIZE> colors = {"red", "orange", "yellow",
-        "green", "blue", "indigo", "violet"
-    };
-
-    sort(colors.begin(), colors.end());
-    bool found = binary_search(colors.begin(), colors.end(), "indgo");
-    ```
-
-    - 标准库容器的begin()和end()成员函数属于对应类的成员，返回的是对象容器的首尾迭代器
----
-## 3.3 多维array对象
-
-1. 例子，二维数组的声明和打印
+2. 多维array对象.  
+    例子，二维数组的声明和打印
     ```cpp
     #include <iostream>
     #include <algorithm>
@@ -424,6 +414,20 @@
         return 0;
     }
     ```
+
+2. array对象的排序与查找
+    - 标准库sort()和binary_search()函数, 在`<algorithm`>头文件中
+    ```cpp
+    array<string, ARRAY_SIZE> colors = {"red", "orange", "yellow",
+        "green", "blue", "indigo", "violet"
+    };
+
+    sort(colors.begin(), colors.end());
+    bool found = binary_search(colors.begin(), colors.end(), "indgo");
+    ```
+
+    - 标准库容器的begin()和end()成员函数属于对应类的成员，返回的是对象容器的首尾迭代器。这里的这些操作跟vector一样。
+
 ---
 ## 3.4 vector
 1. 声明一维和二维向量
@@ -460,5 +464,250 @@
 ---
 # 4. 指针
 
+## 4.1 使用指针的按引用传递
 
+1. 使用指针的按引用传递，实际上传的是一个地址，这个地址在函数中被赋值给形参(一个指针)，这个形参在函数结束时仍然会被销毁，本质上依然是按值传递。这也说明，在C++中，所有的参数其实都是按值传递的。 例子：
+
+    ```cpp
+    // 函数声明
+    void cubeByReference(int * a);
+
+    // 函数调用
+    int number = 5;
+    cubeByReference(&numeber);
+    ``` 
+
+2. 这其实也是C语言所支持的传递引用的方式。在C语言中不支持直接传引用，即 在函数声明中不允许出现&关键字.
+
+---
+## 4.2 内置数组和指针
+
+1. 内置数组的声明和使用
+    ```cpp
+    // 几种声明方式
+    int c[5];
+    int c[5] = {1,2,3,4,5};
+    int c[] = {1,2,3,4,5};
+
+    // C++11特性，允许begin()和end()函数接收一个内置数组作为实参，返回一个迭代器
+    // begin() 和 end() 在<iterator>中定义
+    sort(begin(c), end(c));
+    ```
+
+2. 内置数组的局限性(跟C相同)
+    - 不知道自身大小
+    - 不提供越界检查
+    - 不能作为对象相互赋值
+    - 无法相互比较
+
+3. 内置数组的名字的值可隐式地转换为这个数组第一个元素的地址。
+
+4. 指针和内置数组的交换使用
+    ```cpp
+    int b[5];
+    int *bPtr;
+
+    // 下面两种操作等价
+    bPtr = b;
+    bPtr = &b[0];
+
+    // 下面两种操作等价
+    int c = *(bPtr + 3);
+    int c = b[3];
+    ```
+
+4. 内置数组的名字实际上是一个const指针，不能做修改。 但指向数组的非const指针可以自由修改。
+
+5. 内置数组总是以传引用的方式传给函数，其实就是因为数组名本身就相当于一个指向第一个元素的指针。而如果想避免数组的值在函数中被修改，应使用const修饰符。这里有将指针传给函数的几种方式：
+    - 指向非const数据的const指针，有最大的访问权限，可以修改指针指向的数据，也可以修改指针指向其他数据。
+    - 指向const数据的非const指针，指针本身可以被修改为指向其他数据，但是不能通过该指针修改其所指向的数据了。
+    - 指向非const数据的const指针，这种指针始终指向内存中的固定位置，不能修改指向，但其指向的值可以修改。
+    - 指向const数据的const指针，指针的指向无法修改，其所指向的值也无法修改。
+
+---
+## 4.3 sizeof 运算符
+
+1. 使用sizeof()函数作用于一个内置数组类型，会返回这个数组整个所占的字节数，返回类型为size_t。但是如果使用sizeof()作用于一个内置数组在函数中的形参，实质上相当于sizeof()作用于了一个指针，返回值只能是4.
+
+2. 用sizeof()求内置数组元素个数
+    ```cpp
+    sizeof(numbers) / sizeof(numbers[0]);
+    ```
+
+3. sizeof()也可以接受基本类型作为实参，返回该类型所占的字节大小。
+    ```cpp
+    sizeof(char);
+    sizeof(int);
+    ...
+    ```
+
+4. sizeof()也可以用于一个表达式，返回存储这个表达式所需的字节数，只有当sizeof类型名的时候才需要使用圆括号，作用于表达式或变量时不需要使用圆括号。 sizeof()是一个编译时运算符，它的操作数不会被求值，而是在编译时就算出整个操作数的大小。
+
+---
+## 4.4 指针表达式和算术运算
+
+1. 指针可以自增(++)或自减(--)，相当于往前或往后挪动n个字节，n取决于指针指向的类型。如果指针指向数组中的某个值，指针自增1后将指向下一个元素(这里跟C是一样的)。 当然，指针也可以加或减一个整数。
+
+2. 同类型的指针相减。如果p1包含地址3000，p2包含地址3008(两个int类型指针)，那么p2-p1的值为2.  不同类型指针相减是一个逻辑错误。
+
+3. 同类型指针之间可以进行赋值操作。
+
+4. void* 是一种通用指针，任何指向基本类型或类类型的指针都可以赋值给void* 类型的指针。但是反过来不行，需要强制类型转换。但是void* 指针不能被解引用，因为编译器不知道它所指向的数据类型占多少个字节。
+
+5. 指针的比较只有当两个指针指向同一个内置数组中的元素时才有意义，比较的是两个指针对应元素的下标。
+---
+
+## 4.5 基于指针的字符串(C风格)
+
+1. 基于指针的字符串是一个以空字符'\0'结尾的内置char数组，这个空字符标记了字符串在内存中结束的位置。
+
+2. __注意：对一个内置char数组进行sizeof()运算得到的是包含'\0'在内的长度__。 而且用C语言内存分配方法(malloc)对char数组进行动态内存分配时，要考虑到末尾的'\0'。
+
+3. 例子：
+    ```cpp
+    //以下两种写法等价
+    char color[] = "blue";
+    char color[] = {'b', 'l', 'u', 'e', '\0'};
+    ```
+
+4. 另外，cout和cin都支持作用于一个内置字符数组。
+
+---
+## 其他
+1. C++11中，指针应初始化为nullptr，或者一个相应类型的地址。一个值为nullptr的指针”指向空“，被称为空指针。 而在早期版本中，空指针的值是0或NULL.
+
+
+---
+# 5. 类
+
+## 5.1 实例研究
+
+这一部分以Time类为例来展开研究。  
+- Time类定义：
+    ```cpp
+    //  Time.h
+    #ifndef TIME_H
+    #define TIME_H
+
+    class Time{
+    public:
+        Time();                         // 构造函数
+        void setTime(int, int, int);    // 设置时分秒
+        void printUniversal() const;    // 以universal格式打印
+        void printStandard() const;     // 以standard格式打印
+        
+    private:
+        int hour;
+        int minute;
+        int second;
+    };
+
+    #endif
+    ```
+- Time类实现：
+    ```cpp
+    //  Time.cpp
+    #include <iostream>
+    #include <iomanip>
+    #include <stdexcept>
+    #include "Time.h"
+
+    using namespace std;
+
+    Time::Time()
+    : hour(0), minute(0), second(0){}
+
+    void Time::setTime(int h, int m, int s){
+        if((h >= 0 && h < 24) && (m >= 0 && m < 60)
+            && (s >= 0 && s < 60)){
+            hour = h;
+            minute = m;
+            second = s;
+        }
+        else{
+            throw invalid_argument("parameter out of range");
+        }
+    }
+
+    void Time::printUniversal() const{
+        cout << setfill('0') << setw(2) << hour << ":"
+        << setw(2) << minute << ":"
+        << setw(2) << second << endl;
+    }
+
+    void Time::printStandard() const{
+        cout << ((hour == 0 || hour == 12) ? 12 : hour % 12) << ":"
+        << setfill('0') << setw(2) << minute << ":"
+        << setw(2) << second << (hour < 12 ? " AM" : " PM") << endl;
+    }
+    ```
+
+1. 在头文件中的预处理指令，#ifndef ... #endif，用于防止试图多次包含一个头文件导致错误。按照惯例，预处理指令应该使用大写的头文件名，并用下划线代替圆点。
+
+2. Time构造函数使用 __类内初始化器(C++11)__ 将数据成员初始化为-，确保其能够以一个可靠的状态开始。这里构造函数不允许传任何参数，后续的赋值操作是由成员函数setTime()完成的。
+
+3. 在setTime()的定义中对非法输入情况会抛出异常，这需要在调用setTime()时使用try...catch来捕获异常。这里的throw语句创建了一个名为invalid_argument的新对象，后边的括号是对这个对象的构造函数进行调用，这里允许指定一个用户自定义的错误信息字符串。这个throw会立即终止函数setTime()，然后异常会被返回到try的位置。
+    ```cpp
+    // 对setTime()抛出的异常进行捕获
+    Time t;
+    try{
+        t.setTime(99, 99, 99);
+    }catch(invalid_argument &e){
+        cout << e.what() << endl;
+    }
+    ```
+
+4. 在打印操作中，setfill()函数用于指定填充符，setw()用于设置宽度，但setfill()也将应用到后续的显示中，因此说它是一个”黏性“设置。而setw()仅会对其紧挨着的后一个值起作用。
+
+5. 当成员函数的定义在类外部时，需要使用二元作用域分辨符将其”绑定“到该类，而在类内部的定义不需要。而且 __在类定义内部定义的成员函数会被隐式地声明为inline的__。利用这一特性，可以将简单和稳定的成员函数定义在类的内部来提高程序的性能。
+---
+## 5.2 C++11 委托构造函数:
+- 类的构造函数和成员函数一样可以被重载，如果重载了函数，需要在类的定义中为构造函数的各个版本提供独立的构造函数定义。
+- 例如:
+    ```cpp
+    // Time.h 中的构造函数
+    Time();
+    Time(int);
+    Time(int, int);
+    Time(int, int, int);
+    ```
+    ```cpp
+    // Time.cpp 中的函数定义
+    Time::Time(int h, int m, int s)
+        : hour(h), minute(m), second(s){}
+
+    Time::Time()
+        :Time(0, 0, 0){}
+    
+    Time::Time(int h)
+        :Time(h, 0, 0)
+
+    Time::Time(int h, int m)
+        :Time(h, m, 0)
+    ```
+
+    在上边这个例子中，C++11允许构造函数调用同一个类的其他构造函数，相当于它把工作委托给其所调用的构造函数，这样的构造函数成为委托构造函数。(以前的处理方法是将重写的部分定义为一个单独的private函数)
+---
+## 5.3 析构函数
+1. 析构函数的 ~ 符号本来是取补符号，这也象征着构造函数和析构函数是互补的。
+
+2. 析构函数不接收任何参数，也不返回任何值。
+
+3. 当对象撤销时，类的析构函数会隐式地调用。 __析构函数本身并不释放对象占用的内存空间__ ，它只是在系统回收对象的内存之前执行扫尾工作。
+
+4. 每个类都有一个析构函数，如果程序员没有显式地提供析构函数，那么编译器会生成一个”空的“析构函数。
+---
+## 5.4 不同作用域下构造函数和析构函数的调用时机
+
+1. 全局作用域的对象。
+    - 在文件内任何其他函数(包括main函数)开始执行前调用
+    - main函数执行结束时，相应的析构函数被调用
+
+2. 局部对象的构造函数和析构函数
+    - 当程序执行到自动局部对象的定义时，该对象的构造函数被调用
+    - 当程序执行离开对象的作用域时，相应的析构函数被调用
+
+3. static局部对象的构造函数和析构函数
+    - static局部对象的构造函数只在程序第一次执行到该对象的定义处时被调用一次
+    - 相应的析构函数调用发生在main函数结束时
 
