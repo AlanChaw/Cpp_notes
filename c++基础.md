@@ -356,7 +356,7 @@
     template <typename T>
     auto maximum(T x, T y, T z) -> T
     ```
-    具体是干啥的以后再写
+    可用于 lambda 表达式
 
 ---
 
@@ -1334,6 +1334,33 @@
 ---
 ## 9. 异常处理
 
+异常处理为处理错误提供了一个标准机制，很多情况下处理异常的同时还允许程序正常运行。在系统设计的开始阶段，就要将异常处理策略加入系统，在系统实现后再包含有效的异常处理是非常困难的。
+
+异常处理是用来处理同步(sychronous)错误的，这些错误发生在一个语句正在执行的时候。如下标越界、运算溢出、除数为0、无效函数参数和失败内存分配。 异常处理并不处理异步(asynchronous)事件，如磁盘I/O操作的完成、网络消息到达、鼠标点击等等，这些事件与程序的控制流并行并且互相独立。
+
+
+在函数中，一般的常见错误可以通过返回-1，nullptr 或者 false来判断，而不需要抛出异常。
+
+### 9.1 实例研究
+    
+1. 这个例子中定义了一个异常类，用于处理除数为0的异常，并演示如何使用这个异常类。
+
+        略
+
+
+### 9.2 STL中的异常类层次结构
+
+1. STL中的异常类以基类 exception 作为最上层，都在 __头文件 \<stdexcept\>__ 中定义。
+    <div align="center">
+    <img src="./pics/except.png" width="500" align=center />
+    <br><br>
+    </div>
+
+
+2. 由 C++ 运算符抛出的几个标准异常包括：
+    - new 抛出 bad_alloc 异常
+    - dynamic_cast 抛出 bad_cast 异常
+    - typeid 抛出 bad_typeid 异常
 
 
 ---
@@ -1356,9 +1383,27 @@
 ## 13. 自定义的模板化数据结构
 
 ---
+
 # 其他主题
 
-## 12. C结构体
+## 14. C结构体
+
+### 14.1 结构体中的运算符重载
+
+```cpp
+struct Node{
+    int id;
+    int weight;
+    Node(int _id, int _weight){
+        id = _id;
+        weight = _weight;
+    }
+
+    bool operator< (const Node b) const{    //注意这里的const
+        return weight > b.weight;
+    }
+};
+```
 
 
-## 13. C++11新特性
+## 15. C++11新特性
