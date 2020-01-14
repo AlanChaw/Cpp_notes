@@ -1174,6 +1174,11 @@
 ---
 ### 7.5 public、protected 和 private 继承
 
+<div align="center">
+<img src="./pics/inherit.png" width="700" align=center />
+<br><br>
+</div>
+
 1. 当采用public继承时，基类public成员成为派生类public成员，基类protected成员成为派生类protected成员。
 
 2. 当采用protected继承时，基类的public和protected成员都变成派生类的protected成员。
