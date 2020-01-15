@@ -5,20 +5,26 @@
 - [标准模板库 STL](#%E6%A0%87%E5%87%86%E6%A8%A1%E6%9D%BF%E5%BA%93-stl)
   - [1. 容器](#1-%E5%AE%B9%E5%99%A8)
     - [1.1 容器简介](#11-%E5%AE%B9%E5%99%A8%E7%AE%80%E4%BB%8B)
-    - [1.2 一些常用容器和操作](#12-%E4%B8%80%E4%BA%9B%E5%B8%B8%E7%94%A8%E5%AE%B9%E5%99%A8%E5%92%8C%E6%93%8D%E4%BD%9C)
-      - [\<vector\>常用操作](#%5Cvector%5C%E5%B8%B8%E7%94%A8%E6%93%8D%E4%BD%9C)
-      - [\<unordered_map\>常用操作](#%5Cunordered_map%5C%E5%B8%B8%E7%94%A8%E6%93%8D%E4%BD%9C)
-      - [\<queue> 常用操作](#%5Cqueue-%E5%B8%B8%E7%94%A8%E6%93%8D%E4%BD%9C)
-      - [\<deque> 双向队列，常用操作](#%5Cdeque-%E5%8F%8C%E5%90%91%E9%98%9F%E5%88%97%E5%B8%B8%E7%94%A8%E6%93%8D%E4%BD%9C)
-      - [\<set> 和 \<unordered_set>](#%5Cset-%E5%92%8C-%5Cunordered_set)
-      - [\<multiset>](#%5Cmultiset)
+    - [1.2 vector 对象是如何增长的](#12-vector-%E5%AF%B9%E8%B1%A1%E6%98%AF%E5%A6%82%E4%BD%95%E5%A2%9E%E9%95%BF%E7%9A%84)
   - [2. 迭代器](#2-%E8%BF%AD%E4%BB%A3%E5%99%A8)
     - [2.1 迭代器简介](#21-%E8%BF%AD%E4%BB%A3%E5%99%A8%E7%AE%80%E4%BB%8B)
     - [2.2 迭代器类型和迭代器类型的层次](#22-%E8%BF%AD%E4%BB%A3%E5%99%A8%E7%B1%BB%E5%9E%8B%E5%92%8C%E8%BF%AD%E4%BB%A3%E5%99%A8%E7%B1%BB%E5%9E%8B%E7%9A%84%E5%B1%82%E6%AC%A1)
   - [3. 标准库算法](#3-%E6%A0%87%E5%87%86%E5%BA%93%E7%AE%97%E6%B3%95)
     - [3.1 标准库算法介绍](#31-%E6%A0%87%E5%87%86%E5%BA%93%E7%AE%97%E6%B3%95%E4%BB%8B%E7%BB%8D)
     - [3.2 lambda 表达式](#32-lambda-%E8%A1%A8%E8%BE%BE%E5%BC%8F)
+  - [4. 标准库特殊设施](#4-%E6%A0%87%E5%87%86%E5%BA%93%E7%89%B9%E6%AE%8A%E8%AE%BE%E6%96%BD)
+    - [4.1 tuple 类型](#41-tuple-%E7%B1%BB%E5%9E%8B)
+    - [4.2 bitset 类型](#42-bitset-%E7%B1%BB%E5%9E%8B)
+    - [4.3 正则表达式](#43-%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F)
+    - [4.4 随机数](#44-%E9%9A%8F%E6%9C%BA%E6%95%B0)
 - [其他笔记](#%E5%85%B6%E4%BB%96%E7%AC%94%E8%AE%B0)
+    - [一些常用容器和操作](#%E4%B8%80%E4%BA%9B%E5%B8%B8%E7%94%A8%E5%AE%B9%E5%99%A8%E5%92%8C%E6%93%8D%E4%BD%9C)
+      - [\<vector\>常用操作](#%5Cvector%5C%E5%B8%B8%E7%94%A8%E6%93%8D%E4%BD%9C)
+      - [\<unordered_map\>常用操作](#%5Cunordered_map%5C%E5%B8%B8%E7%94%A8%E6%93%8D%E4%BD%9C)
+      - [\<queue> 常用操作](#%5Cqueue-%E5%B8%B8%E7%94%A8%E6%93%8D%E4%BD%9C)
+      - [\<deque> 双向队列，常用操作](#%5Cdeque-%E5%8F%8C%E5%90%91%E9%98%9F%E5%88%97%E5%B8%B8%E7%94%A8%E6%93%8D%E4%BD%9C)
+      - [\<set> 和 \<unordered_set>](#%5Cset-%E5%92%8C-%5Cunordered_set)
+      - [\<multiset>](#%5Cmultiset)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -58,120 +64,21 @@ STL由三个关键组件构成:
     - 适配器：栈和队列都是在序列容器的基础上加以约束得到的。
 
 ---
-### 1.2 一些常用容器和操作
-#### \<vector\>常用操作
-1. 声明一维和二维向量
+### 1.2 vector 对象是如何增长的
+1. vector 和 string 类型提供了一些成员函数，允许我们与它的实现中内存分配部分互动。
     ```cpp
-    //一维
-    int size = 10;
-    vector<int> vec(size);
-    //二维
-    int row = 5, col = 10;
-    vector<vector<int>> matrix(row, vector<int>(col));
+    c.shrink_to_fit()       // 将 capacity() 减少为 size() 相同大小
+    c.capacity()            // 不重新分配内存的话，c的容量
+    c.reserve(n)            // 分配至少能容纳 n 个元素的内存空间
     ```
+    shrink_to_fit() 除了适用于 vector 和 string，还可用于 deque.
 
-2. 排序
-    ```cpp
-    sort(vec.begin(), vec.end(), static compare);
-    ```
-3. 切片
-    ```cpp
-    vector<int> v2 = vector<int>(v1.begin(), v1.begin()+10);
-    ```
-4. 获取最后一个元素
-    ```cpp
-    vec[vec.size()-1];  //直接返回引用
-    vec.at()       //直接返回引用，跟用下标一样
-    vec.back();    //返回指向最后一个元素的引用
-    vec.end()-1;   //返回一个指向最后一个元素的迭代器
-    vec.rbegin();  //返回反向迭代器
-    ```
-5. 删除最后一个元素 
-    ```cpp
-    vec.pop_back();
-    ```
 
-#### \<unordered_map\>常用操作
-1. 遍历
-    ```cpp
-    for (auto iter = groups.begin(); iter != groups.end(); iter++){
-            auto key = iter->first;
-            auto val = iter->second;
-    }
-    ```
+2. 只有当需要的内存空间超过当前容量时，reserve 调用才会改变 vector 的容量。而且 reserve 至少分配与需求容量一样大的内存空间。
 
-2. 添加
-    ```cpp
-        map.insert(std::make_pair(key, val));
-    ```
+3. 当需求大小小于当前容量时，reserve 也不会退回内存空间。 而同样地，resize 成员函数只改变容器中元素的数量，而不改变容量，resize 也不会减少内存空间。
 
-3. 修改
-    ```cpp
-        map[key] = newVal;  //最好是在确保该key存在的情况下再做此操作
-    ```
-
-4. 查找 （使用迭代器）
-    ```cpp
-    std::unordered_map<int, std::string>::iterator iter;
-    if ((iter = map.find(key)) != map.end()) {
-        std::cout << iter->second << std::endl;
-    }
-
-    //或
-    if(map.count(key) == 0)
-    ```
-    或者使用at()，但是如果该key不存在会抛出OOR异常
-
-5. 删除
-    ```cpp
-    map.erase(key);
-    ```
-    不要轻易使用map[key]，因为如果该Key不存在，会被自动创建。
-
-#### \<queue> 常用操作
-1. 初始化
-    ```cpp
-    std::queue<int> first;            // empty queue
-    std::queue<int> second (mydeck);  // queue initialized to copy of deque
-    ```
-
-2. 成员函数
-    - empty()
-    - size()
-    - front()  访问队首元素
-    - back()   访问队尾元素
-    - push()
-    - pop()
-
-#### \<deque> 双向队列，常用操作
-
-1. 成员函数
-    - at() 访问元素
-    - push_front()
-    - pop_front()
-    - push_back()
-    - pop_back()
-    - front()   队首元素引用
-    - back()    队尾元素引用
-    - size()
-    - empty()
-
-#### \<set> 和 \<unordered_set>
-
-- 函数
-    - insert()  插入
-    - erase()   删除
-
-- 区别在于set将数据有序存储，插入和查询的时间复杂度为O(logn)，一般是用红黑树实现
-- 而unordered_set中数据是无序的，插入和查询时间复杂度为O(1)，跟map 和 unordered_map的关系一样，map中是按key排序的，支持运算符重载。
-- 自动排序的优点是使得搜寻元素时具有良好的性能，具有对数时间复杂度。但是造成的一个缺点就是：
-    - 不能直接改变元素值。因为这样会打乱原有的顺序
-    - 改变元素值的方法是：先删除旧元素，再插入新元素。
-    - 存取元素只能通过迭代器，从迭代器的角度看，元素值是常数。
-
-#### \<multiset>
-
-- set和multiset的区别是：set插入的元素不能相同，但是multiset可以相同。
+4. shrink_to_fit() 可以要求这些容器退回不需要的内存空间。但是有些具体实现中，也不一定能保证退回。
 
 ---
 ## 2. 迭代器
@@ -291,9 +198,146 @@ STL由三个关键组件构成:
     ```
     20
     ```
+---
+## 4. 标准库特殊设施
+
+### 4.1 tuple 类型
+
+
+
+
+### 4.2 bitset 类型
+
+
+
+
+### 4.3 正则表达式
+
+
+
+
+### 4.4 随机数
+
+
 
 ---
 # 其他笔记
+
+### 一些常用容器和操作
+#### \<vector\>常用操作
+1. 声明一维和二维向量
+    ```cpp
+    //一维
+    int size = 10;
+    vector<int> vec(size);
+    //二维
+    int row = 5, col = 10;
+    vector<vector<int>> matrix(row, vector<int>(col));
+    ```
+
+2. 排序
+    ```cpp
+    sort(vec.begin(), vec.end(), static compare);
+    ```
+3. 切片
+    ```cpp
+    vector<int> v2 = vector<int>(v1.begin(), v1.begin()+10);
+    ```
+4. 获取最后一个元素
+    ```cpp
+    vec[vec.size()-1];  //直接返回引用
+    vec.at()       //直接返回引用，跟用下标一样
+    vec.back();    //返回指向最后一个元素的引用
+    vec.end()-1;   //返回一个指向最后一个元素的迭代器
+    vec.rbegin();  //返回反向迭代器
+    ```
+5. 删除最后一个元素 
+    ```cpp
+    vec.pop_back();
+    ```
+
+#### \<unordered_map\>常用操作
+1. 遍历
+    ```cpp
+    for (auto iter = groups.begin(); iter != groups.end(); iter++){
+            auto key = iter->first;
+            auto val = iter->second;
+    }
+    ```
+
+2. 添加
+    ```cpp
+        map.insert(std::make_pair(key, val));
+    ```
+
+3. 修改
+    ```cpp
+        map[key] = newVal;  //最好是在确保该key存在的情况下再做此操作
+    ```
+
+4. 查找 （使用迭代器）
+    ```cpp
+    std::unordered_map<int, std::string>::iterator iter;
+    if ((iter = map.find(key)) != map.end()) {
+        std::cout << iter->second << std::endl;
+    }
+
+    //或
+    if(map.count(key) == 0)
+    ```
+    或者使用at()，但是如果该key不存在会抛出OOR异常
+
+5. 删除
+    ```cpp
+    map.erase(key);
+    ```
+    不要轻易使用map[key]，因为如果该Key不存在，会被自动创建。
+
+#### \<queue> 常用操作
+1. 初始化
+    ```cpp
+    std::queue<int> first;            // empty queue
+    std::queue<int> second (mydeck);  // queue initialized to copy of deque
+    ```
+
+2. 成员函数
+    - empty()
+    - size()
+    - front()  访问队首元素
+    - back()   访问队尾元素
+    - push()
+    - pop()
+
+#### \<deque> 双向队列，常用操作
+
+1. 成员函数
+    - at() 访问元素
+    - push_front()
+    - pop_front()
+    - push_back()
+    - pop_back()
+    - front()   队首元素引用
+    - back()    队尾元素引用
+    - size()
+    - empty()
+
+#### \<set> 和 \<unordered_set>
+
+- 函数
+    - insert()  插入
+    - erase()   删除
+
+- 区别在于set将数据有序存储，插入和查询的时间复杂度为O(logn)，一般是用红黑树实现
+- 而unordered_set中数据是无序的，插入和查询时间复杂度为O(1)，跟map 和 unordered_map的关系一样，map中是按key排序的，支持运算符重载。
+- 自动排序的优点是使得搜寻元素时具有良好的性能，具有对数时间复杂度。但是造成的一个缺点就是：
+    - 不能直接改变元素值。因为这样会打乱原有的顺序
+    - 改变元素值的方法是：先删除旧元素，再插入新元素。
+    - 存取元素只能通过迭代器，从迭代器的角度看，元素值是常数。
+
+#### \<multiset>
+
+- set和multiset的区别是：set插入的元素不能相同，但是multiset可以相同。
+
 
 1. \<cmath> 数学库
     ```cpp

@@ -58,6 +58,8 @@
     - [8.5 \*\*多态性、虚函数和动态绑定的底层实现机制](#85-%5C%5C%E5%A4%9A%E6%80%81%E6%80%A7%E8%99%9A%E5%87%BD%E6%95%B0%E5%92%8C%E5%8A%A8%E6%80%81%E7%BB%91%E5%AE%9A%E7%9A%84%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0%E6%9C%BA%E5%88%B6)
     - [8.6 dynamic_cast 和 typeid](#86-dynamic_cast-%E5%92%8C-typeid)
   - [9. 异常处理](#9-%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86)
+    - [9.1 实例研究](#91-%E5%AE%9E%E4%BE%8B%E7%A0%94%E7%A9%B6)
+    - [9.2 STL中的异常类层次结构](#92-stl%E4%B8%AD%E7%9A%84%E5%BC%82%E5%B8%B8%E7%B1%BB%E5%B1%82%E6%AC%A1%E7%BB%93%E6%9E%84)
 - [流和文件](#%E6%B5%81%E5%92%8C%E6%96%87%E4%BB%B6)
   - [10. 输入/输出流](#10-%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA%E6%B5%81)
   - [11. 文件](#11-%E6%96%87%E4%BB%B6)
@@ -65,8 +67,10 @@
   - [12. 自定义模板介绍](#12-%E8%87%AA%E5%AE%9A%E4%B9%89%E6%A8%A1%E6%9D%BF%E4%BB%8B%E7%BB%8D)
   - [13. 自定义的模板化数据结构](#13-%E8%87%AA%E5%AE%9A%E4%B9%89%E7%9A%84%E6%A8%A1%E6%9D%BF%E5%8C%96%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84)
 - [其他主题](#%E5%85%B6%E4%BB%96%E4%B8%BB%E9%A2%98)
-  - [12. C结构体](#12-c%E7%BB%93%E6%9E%84%E4%BD%93)
-  - [13. C++11新特性](#13-c11%E6%96%B0%E7%89%B9%E6%80%A7)
+  - [14. C结构体](#14-c%E7%BB%93%E6%9E%84%E4%BD%93)
+    - [14.1 结构体中的运算符重载](#141-%E7%BB%93%E6%9E%84%E4%BD%93%E4%B8%AD%E7%9A%84%E8%BF%90%E7%AE%97%E7%AC%A6%E9%87%8D%E8%BD%BD)
+  - [15. C++11新特性](#15-c11%E6%96%B0%E7%89%B9%E6%80%A7)
+  - [16. 其他知识点](#16-%E5%85%B6%E4%BB%96%E7%9F%A5%E8%AF%86%E7%82%B9)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -1410,5 +1414,80 @@ struct Node{
 };
 ```
 
-
 ## 15. C++11新特性
+
+1. __constexpr__ 和常量表达式.
+    - 常量表达式是指值不会改变并且在编译过程就能得到计算结果的表达式
+    - C++11中，允许将变量声明为 constexpr 类型，以便由编译器验证变量的值是否是一个常量表达式。
+        ```cpp
+        constexpr int mf = 20;
+        constexpr int limit = mf + 1;
+        ```
+
+2. __constexpr 函数__
+    - 是指能用于常量表达式的函数。constexpr 函数的返回类型及所有形参的类型都得是字面值类型(不能是指针或引用)，而且函数体中必须有且只有一条 return 语句。
+    - 这样的函数会被隐式地指定为 inline 函数。
+
+2. 类型别名
+    - 传统方法是直接使用 __typedef__， 例如:
+        ```cpp
+        typedef double wages;
+        ```
+    - 新标准中可以使用 __using__：
+        ```cpp
+        using SI = Sales_item;   // SI 是 Sales_item 的别名
+        ```
+
+3. __auto__ 类型说明符
+    - C++11中引入了 auto 类型说明符，能够让编译器通过值自动分析表达式所属的类型。
+    - 编译器推断出的 auto 类型有时和初始值的类型并不完全一样，编译器会适当地改变结果类型使其更符合初始化规则。
+
+4. __decltype__ 类型指示符
+    - C++11引入了第二种类型说明符 __decltype__，它的作用是选择并返回操作数的数据类型。
+        ```cpp
+        const int ci = 0, &cj = ci;
+        decltype(ci) x = 0;     // x的类型是ci的类型，const int
+        decltype(cj) y = x;     // y 的类型是cj的类型，const int&，同时绑定到x
+        decltype(cj) z;         // 错误，cj是 const int&，引用必须要初始化
+        ```
+
+    - decltype((variable)) 的结果永远是一个引用。
+
+5. C++11 中可以为数据成员(non-static)提供一个 __类内初始值__，创建对象时类内初始值将用于初始化数据成员。
+
+6. __对象移动__
+    1. 新标准一个最主要的特性是可以移动而非拷贝对象的能力，这样可以大幅提升性能。(因为省去了对象创建和销毁的开销)。而且有些类包含不能被共享的资源(如指针或IO缓冲，如unique_ptr)。因此这些类型的对象不能拷贝但可以移动。
+
+
+---
+## 16. 其他知识点
+
+1. __函数指针__
+    - 函数指针指向的是函数而非对象的指针。例子，声明一个函数指针并赋值：
+        ```cpp
+        bool lengthCompare(const string &, const string &);  // 函数声明
+
+        bool (*pf)(const string&, const string&);   // 函数指针声明
+        pf = lengthCompare;                         // 将pf指向函数 lengthCompare
+
+        // 三种等价的调用
+        bool b1 = pf("hello", "goodbye");               
+        bool b2 = (*pf)("hello", "goodbye");    
+        bool b3 = lengthCompare("hello", "goodbye");
+        ```
+
+    - 虽然函数的形参不能直接是一个函数，但可以是一个函数指针，也就是说函数指针可以作为参数传给另一个函数。如：
+        ```cpp
+        void useBigger(const string& s1, const string& s2,
+                        bool pf(const string&, const string&));
+        
+        // 也可以声明为
+        void useBigger(const string& s1, const string& s2,
+                        bool (*pf)(const string&, const string&));
+
+        // 调用，并传递函数名称作为实参，它会自动被转换为函数指针：
+        useBigger(s1, s2, lengthCompare);
+        ```
+
+    - 函数指针也可作为函数的返回值。对于返回值，必须显示地将返回值类型指定为指针，而不是返回函数名称。
+
