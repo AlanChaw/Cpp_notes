@@ -227,7 +227,7 @@
     }
     ```
     这样的代码在单线程下是安全的，但是有可能在读取到栈非空后（1），另一个线程把这个栈掏干了，回到这个线程本身，就再无法正常弹出数据（2，3）。这就是接口固有设计产生的问题。 可以选择把锁的粒度增大，但是这样会导致多线程带来的性能收益明显降低。  
-    书中给出了一个解决办法，即：让 `pop()` 函数返回一个指针（`shared_ptr`）指向栈顶元素，另一个重载的 `pop(T& )` 接收一个栈中元素的引用，从而能具体地去删除某个值。
+    书中给出了一个解决办法，即：让 `pop()` 函数返回一个指针（`shared_ptr`）指向栈顶元素，另一个重载的 `pop(T& )` 接收一个栈中元素的引用，将栈顶元素赋值给该引用，然后弹出栈顶元素。[线程安全的栈，代码](./codes/thread_safe_stack.cpp)。
 
 5. __死锁__
     - 当使用多个细粒度锁时，一旦一个给定操作需要两个或两个以上的互斥量，就会发生死锁，这与条件竞争完全相反——不同的两个线程互相等待，什么都没做。
@@ -321,10 +321,78 @@
 
 ### 4.1 等待一个事件或其他事件
 
+1. 当一个线程等待另一个线程完成任务时
+    - 可以持续检查互斥量。但是这是一种资源浪费。
+    - 在等待的线程做检查的间隙，使用 `std::this_thread::sleep_for()` 进行周期性间歇
+        ```cpp
+        bool flag;
+        std::mutex mtx;
 
+        void wait_for_flag(){
+            std::unique_lock<std::mutex> lk(mtx);
+            while(!flag){       // flag 没释放，一直轮询
+                lk.unlock();    // 解锁
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                lk.lock();      // 再上锁
+            }
+        }
+        ```
+        在等待间隙做解锁，休眠后加锁，是为了让其他等待的线程有机会获得锁。在休眠过程中，线程没有浪费执行时间，但是问题在于休眠多久很难确定。
 
+    - 使用C++ STL 提供的工具去等待事件的发生。通过 __设置条件变量__，当另一个线程触发事件时，唤醒等待线程。
 
+2. 在 `<condition_variable>` 头文件中包括 `std::condition_variable` 和 `std::condition_variable_any` 两套条件变量的实现。前者仅限与 `std::mutex` 一起工作，后者可以和满足最低标准的互斥量一起工作，它也更加灵活，但开销也更大。一般能用前者就先用前者了，除非对灵活性有特殊要求。例如：
+    ```cpp
+    std::mutex mtx;
+    std::queue<data_chunk> q;           // 两个线程间传递数据的队列
+    std::condition_variable data_cond;
 
+    void data_preparation_thread(){
+        while(has_more_data()){
+            const data_chunk data = prepare_data();
+            std::lock_guard<std::mutex> lk(mtx);
+            q.push(data);
+            data_cond.notify_one();     // 对等待线程通知
+        }
+    }
+
+    void data_processing_thread(){
+        while(true){
+            std::unique_lock<std::mutex> lk(mtx);   // (2)
+            data_cond.wait(lk, 
+                []{return !data_queue.empty();}    
+            );                                      // (1)
+            data_chunk data = q.front();
+            q.pop();
+            lk.unlock();
+
+            process(data);
+            if(is_last_chunk(data))
+                break;
+        }
+    }
+    ```
+    (1). 这里调用 `std::condition_variable::wait()`，其接受锁和一个 lambda 表达式，其会检查数据队列 q 是否为空，如果不为空，说明已经准备好数据了，就不需要等待。也就是说，__处理数据的线程会一直等待条件满足并将自己挂起，直到准备数据的线程将数据压入队列，并发出通知__。
+
+    (2). `wait()` 函数检查条件，如果条件不满足则将当前线程挂起，并且会 __解锁 lk 的互斥量__，只有当收到 `notify_one()` 发来的通知时，才再次获取互斥锁，并再次检查 lambda 表达式的条件，只有条件满足，才继续进行，否则释放锁并继续挂起。 所以，这里 __必须用 `unique_lock`，而不能用`lock_guard`__。 另外，这里在获取到数据后立刻对队列解锁，然后再做 `process(data)`，这也是 `unique_lock` 灵活性的一个体现。
+
+    `wait()` 函数也可传入函数指针或重载了调用符的对象，不用非要用 lambda 表达式，只是因为 lambda 表达式其实就是一个匿名函数，往往更适合这种情况。要注意的是，考虑到可能会发生 __伪唤醒__（因为可能它收到了通知，但在这个时间差内条件又变为不满足了，就还要继续等待），所以最好不要用带有副作用的函数来做条件检查，因为这个函数可能会被执行若干次。
+
+3. 使用条件变量构建线程安全的队列
+    - `std::queue` 支持的操作包括
+        - 构造函数、重载=、移动构造
+        - 状态查询：empty(), size()
+        - 元素查询：front(), back()
+        - 修改：push(), pop(), emplace().   
+            （empalce 与 push 的不同在于其直接接受右值，会为传入的右值自动移动构造，而 push 只接受左值并为左值拷贝构造）
+    
+    - 同之前的 stack 一样，为了避免在固有接口上带来的条件竞争，需要将 front() 和 pop() 合并成一个函数。与栈不同的是，当使用队列在多个线程中传递数据时，接收线程通常要等待数据的压入（当队列为空时）。这里提供 `try_pop()` 用于尝试弹出，总会直接返回。`wait_and_pop()` 会等待有值可检索的时候才返回。
+
+    - [使用条件变量构建线程安全的队列-代码](./codes/thread_safe_queue.cpp)
+
+    - 这种办法可以用来分解工作负载，并且只有一个线程对通知做出反应。当新数据准备完成时，`notify_one()` 会出发一个正在执行 wait() 的线程。告诉此线程去检查 wait() 的条件。
+
+    - 当所有线程都在等待同一事件时，可以使用 `notify_all()` 来通知。
 
 ---
 ### 4.2 使用期望等待一次性事件
