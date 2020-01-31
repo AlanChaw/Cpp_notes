@@ -397,14 +397,262 @@
 ---
 ### 4.2 使用期望等待一次性事件
 
+1. __期望（future）__：当一个线程需要等待一个特定的一次性事件时，在某种程度上来说它就需要知道这个事件在未来的表现形式。之后，这个线程会周期性地等待或检查是否触发（检查信息板）；在检查期间也会执行其他任务，直到对应的任务触发，等待期望的状态就会变为就绪（ready）。一个期望可能是数据相关的，也可能不是。当事件发生时，这个期望就不能被重置了。
 
+2. C++ STL 提供两种期望。
+    - __唯一期望__：`std::future<>`，一个对象只能与一个指定事件相关联。
 
+    - __共享期望__：`std::shared_future<>`，可以关联多个事件。
+
+    相当于是仿照智能指针的两种实现。而且期望对象本身不提供同步访问，多个线程需要访问一个独立的期望对象时，需要使用互斥量或类似机制进行保护。
+
+3. 带返回值的后台任务：
+    - 由于 `std::thread` 不提供直接接收返回值的机制。就需要 `std::async` 函数模板了（头文件 `<future>` 中）。当任务结果不着急要时，可以使用 `std::async` 启动一个异步任务，该函数会返回一个 `std::future` 对象，这个对象持有最终计算出来的结果。当需要这个值时只需调用其 `get()` 函数，这样会阻塞线程直到期望状态变为就绪为止，之后返回计算结果。例如：
+        ```cpp
+        #include <future>
+        #include <iostream>
+
+        int find_the_answer();
+        void do_other_stuff();
+
+        int main(){
+            std::future<int> the_answer = std::async(find_the_answer);
+
+            do_other_stuff();
+
+            std::cout << "The answer is " << the_answer.get() << std::endl;
+        }
+        ```
+
+    当然，`std::async` 也像 `std::thread` 一样，支持为函数传入参数，或使用对象的成员函数。各种情况下的使用方式：
+    ```cpp
+    #include <string>
+    #include <future>
+    struct X
+    {
+    void foo(int,std::string const&);
+    std::string bar(std::string const&);
+    };
+    X x;
+    auto f1=std::async(&X::foo,&x,42,"hello");  // 调用p->foo(42, "hello")，p是指向x的指针
+    auto f2=std::async(&X::bar,x,"goodbye");  // 调用tmpx.bar("goodbye")， tmpx是x的拷贝副本
+    struct Y
+    {
+    double operator()(double);
+    };
+    Y y;
+    auto f3=std::async(Y(),3.141);  // 调用tmpy(3.141)，tmpy通过Y的移动构造函数得到
+    auto f4=std::async(std::ref(y),2.718);  // 调用y(2.718)
+    X baz(X&);
+    std::async(baz,std::ref(x));  // 调用baz(x)
+    class move_only
+    {
+    public:
+    move_only();
+    move_only(move_only&&)
+    move_only(move_only const&) = delete;
+    move_only& operator=(move_only&&);
+    move_only& operator=(move_only const&) = delete;
+
+    void operator()();
+    };
+    auto f5=std::async(move_only());  // 调用tmp()，tmp是通过std::move(move_only())构造得到
+    ```
+
+    - 同时，也可以在创建时先不执行，而是延后执行：
+        ```cpp
+        auto f6=std::async(std::launch::async,Y(),1.2);  // 在新线程上执行
+        auto f7=std::async(std::launch::deferred,baz,std::ref(x));  // 在wait()或get()调用时执行
+        auto f8=std::async(
+                    std::launch::deferred | std::launch::async,
+                    baz,std::ref(x));  // 实现选择执行方式，这种是默认的
+        auto f9=std::async(baz,std::ref(x));
+        f7.wait();  //  调用延迟函数
+        ```
+
+4. __任务与期望__
+    - `std::packaged_task<>` 对一个函数或可调用对象绑定一个期望。当该类的对象被调用，它就会调用相关函数或可调用的对象，将期望状态置为就绪，返回值也会被存储为相关数据。其模板参数是一个函数签名，例如 `int(string&, double)`。当构造一个 `std::packaged_task<>` 实例时，必须传入一个函数或可调用对象（重载了（）运算符）。支持隐式类型转换。
+    
+    - __例子：线程间传递任务__: 当一个线程需要更新界面时，它发出一条信息给正确的线程，让特定的线程来做界面更新。这里使用 `std::packaged_task<>`来实现，并且不需要发送自定义信息给GUI线程：
+        ```cpp
+        #include <deque>
+        #include <mutex>
+        #include <future>
+        #include <thread>
+        #include <utility>
+
+        std::mutex m;
+        std::deque<std::packaged_task<void()>> tasks;   // 任务队列
+
+        bool gui_shutdown_message_reveived();
+        void get_and_process_gui_message();
+
+        void gui_thread(){
+            // GUI线程，一直轮询，只要未收到关闭信息就一直循环
+            while(!gui_shutdown_message_recevied()){
+                get_and_process_gui_message();
+                std::packaged_task<void()> task;
+                {
+                    std::lock_guard<std::mutex> lk(m);  // 加锁
+                    if(tasks.empty())                   // 无任务，跳过
+                        continue;
+                    // 若有任务，取出任务
+                    task = std::move(tasks.front());
+                    tasks.pop_front();
+                    // 这里执行到代码块末尾，会自动释放锁
+                }
+                // 执行取出的任务
+                task();
+            }
+        }
+
+        std::thread gui_bg_thread(gui_thread);
+        
+        // 将任务传入队列
+        template<typename Func>
+        std::future<void> post_task_for_gui_thread(Func f){
+            // 提供一个打包好的任务
+            std::packaged_task<void()> task(f);
+            // 通过 get_future() 获取期望对象，因为函数返回值为 void，所以期望类型为 void
+            std::future<void> res = task.get_future();
+
+            std::lock_guard(std::mutex) lk(m);  // 队列上锁
+            tasks.push_back(std::move(task));   // 添加新任务
+            return res;
+        }
+
+        ```
+        这里的期望和打包的任务是绑定的，将期望对象返回给当前线程，当前线程可以根据当前期望来判断GUI是否更新完成，或使用该期望等待GUI的更新。
+
+5. __使用 `std::promise`__
+    - 考虑一个线程用来处理多个网络连接的情况，来自不同端口的连接基本上以乱序处理，同时不同端口的数据报也以乱序方式进入队列。
+    - `std::promise<T>` 提供设定值的方式，其类型T与 `std::future<T>` 对象相关联。一对这样的对象可以提供一个可行的机制：在期望上可以阻塞等待线程，同时，提供数据的线程可以使用组合中的“承诺”来对相关值进行设置，以及将期望的状态置为就绪。当承诺的值已经设置完毕(`set_value()`)，对应期望的状态变为就绪，并且可用于检索已存储的值。
+    - __例子：单线程处理多接口__
+        ```cpp
+        #include <future>
+
+        void process_connections(connection_set& connections){
+            // 轮询，直到done()为止
+            while(!done(connections)){
+                // 依次检查每个连接
+                for(connection_iterator connection = connections.begin();
+                    connection != connections.end(); ++connection){
+                
+                    // 是否有传入的数据包（即网络请求）
+                    if(connection->has_incoming_data()){    
+                        data_packet data = connection->incoming();
+                        // 将 id 映射到 promise
+                        std::promise<payload_type>& p = connection->get_promise(data.id);
+                        p.set_value(data.payload);
+                    }
+
+                    // 是否有需要传出的数据包
+                    if(connection->has_outgoing_data()){
+                        outgoing_packet data = connection->top_of_outgoing)queue();
+                        connection->send(data.payload);
+                        // 将承诺设置为 true，表示传输成功
+                        data.promise.set_value(true);
+                    }
+                }
+
+            }
+        }
+        ```
+        其中 payload_type 是数据包的负载类型。  
+        这里使用了 “承诺/期望” 组合方式，首先当有数据包（网络请求）传入时，拿到当前数据，使用当前数据的id取得对应的承诺对象，将承诺值设置为数据中的负载。 再检查是否有需要传回的数据包，如果有，则传回数据包，将承诺值设置为 true，表示传输成功。  
+        通过 promise 对象的 `get_future()` 对象可以拿到对应的期望对象，可以以此判断对应的承诺是否执行完成。
+
+6. 为期望存储异常
+    - 当在异步调用一个函数(`std::async()`)时，如果该函数抛出一个异常，这个异常就会存储到“期望”的结果数据中，之后“期望”的状态将被设置为“就绪”，之后调用 get() 会抛出这个存储的异常。如果将函数打包到 `std::packaged_task<>` 任务包中，在这个任务被调用时，同样的事情也会发生。- `std::promise` 也提供同样的功能，当希望存入一个异常，而不是一个数值时，需要调用 `set_exception()` 函数，而不是 `set_value()`。例如：
+        ```cpp
+        extern std::promise<double> some_promise;
+        try{
+            some_promise.set_value(calculate_value());
+        }catch(...){
+            some_promise.set_exception(std::current_exception());
+        }
+        ```
+
+    - `std::future` 有一定的局限性，当很多线程在等待时，只有一个线程能获取等待结果。当多个线程需要等待相同事件的结果，需要使用 `std::shared_future`。 这里就类似智能指针的 `shared_ptr`
+
+7. __多个线程的等待__
+    - 当调用某一个 `std::future` 对象的成员函数时，会让这个线程的数据和其他线程数据不同步。当多线程在没有额外同步的情况下，访问一个独立的 `std::future` 对象，会有数据竞争和未定义行为。因为 `std::future` 的 `get()` 函数只能被一次性地调用，只有一个独立的线程能够获取到返回结果，第一次调用后就没有结果可以获取了。
+
+    - 这就要用到 `std::shared_future`了，在多个线程对该对象访问时，避免数据竞争导致的不同步，还是需要加锁。如果不加锁的话，也可以让每个线程都有独立的拷贝对象，这样每个线程访问自己的对象获取结果即可，这样共享同步结果是线程安全的。
+
+    - 例如：对复杂的表格的并行执行，每个单元格有单一的终值，这个终值结果依赖于其他单元格，这时可以使用 `std::shared_future` 来引用其所依赖的单元格的数据。
+
+    - 当 `std::future` 对象没有其他对象共享同步状态所有权，所有权必须使用 `std::move` 将所有权传递到 `std::shared_future`：
+        ```cpp
+        // 默认构造函数
+        std::promise<int> p;
+
+        std::future<int> f(p.get_future());     // 通过承诺 p 获取到期望对象 f
+        assert(f.valid());      // 期望 f 合法
+        std::shared_future<int> sf(std::move(f));   // 转移所有权
+        assert(!f.valid());     // 期望 f 不再合法
+        assert(sf.valid());     // 期望 sf 合法
+
+        std::shared_future<int> sf(p.get_future());     // 支持隐式转移所有权
+        // 或调用 std::future 的 share() 函数转移所有权给 sf
+        std::shared_future<int> sf = p.get_future().share()
+        ```
+    
+    - 直接隐式转换所有权或使用 share() 函数转移的好处在于，当 promise 的类型改变时，不需要再更改代码修改 future 的类型。
 
 ---
 ### 4.3 限定等待时间
 
+之前的阻塞调用会阻塞一段不确定的时间，将线程挂起知道等待事件的发生。很多情况下，需要对等待时间进行一个限制。例如，对于用户交互进程，可以支持用户按下“取消”来直接终止等待。
+- __“时延”的超时方式__
+    - 指定一段时间（如30ms），以 `_for` 为后缀
+- __"绝对"的超时方式__
+    - 指定一个时间点，以 `_until` 为后缀
 
+1. C++ STL 时钟，头文件 <chrono>
+    - 提供了四种不同的信息：
+        - 现在时间
+        - 时间类型
+        - 时钟节拍
+        - 通过时钟节拍的分布，判断时钟是否稳定
+
+    - 时钟的当前时间可以通过调用静态成员函数now()从时钟类中获取；例如，`std::chrono::system_clock::now()`是将返回系统时钟的当前时间
+
+    - 其他对于 `std::chrono` 的介绍 略
+
+2. __例子：等待一个条件变量（有超时功能）__
+    ```cpp
+    #include <condition_variable>
+    #include <mutex>
+    #include <chrono>
+
+    std::condition_variable cv;
+    bool done;
+    std::mutex m;
+
+    bool wait_loop(){
+        auto const timeout = std::chrono::steady_clock::now() + 
+                             std::chrono::milliseconds(500);
+        std::unique_lock<std::mutex> lk(m);     // 上锁
+        while(!done){
+            // 超时自动跳出循环
+            if(cv.wait_until(lk, timeout) == std::cv_status::timeout)
+                break;
+        }
+        return done;        // 如果是正常执行完毕，则 true，如果是超时中断的，则 false
+    }
+    ```
+
+3. 具有超时功能的函数
+    - 对一个特定的线程添加一个延迟处理，当这个线程无所事事时，就不会占用可供其他线程处理的时间。就像之前的例子中使用的 `std::this_thread::sleep_for()` 和 `std::this_thread::sleep_until()`。有些事必须在指定时间范围内完成，所以耗时很重要。例如，每天早晨6.00打印工资条。
+
+    - 超时可以配合条件变量或 future 一起使用。甚至可以在尝试获取一个互斥锁时使用，`std::timed_mutex` 和 `std::recursive_timed_mutex` 支持超时锁。它们提供 `try_lock_for()` 和 `try_lock_until()` 成员函数。
 
 ---
 ### 4.4 使用同步操作简化代码
+
+这一章介绍了：__条件变量、future、packaged_task、promise__。这里介绍如何使用这些机制，来简化线程的同步操作。
+
+
+
 
