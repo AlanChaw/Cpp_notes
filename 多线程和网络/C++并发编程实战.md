@@ -653,6 +653,90 @@
 
 这一章介绍了：__条件变量、future、packaged_task、promise__。这里介绍如何使用这些机制，来简化线程的同步操作。
 
+1. __使用 future 的函数化编程__
+
+    - __函数化编程__，这种编程方式中的函数结果只依赖于传入函数的参数，并不依赖外部状态。一个纯粹的函数不会改变任何外部状态。 尤其是当并行时，如果函数都是纯粹的，都不会涉及对共享数据的修改，就不存在条件竞争，也就没有必要使用互斥量对共享数据进行保护。 future 使得 _函数化编程模式并发化_ 在 c++ 中成为可能。一个“期望”对象可以在线程间互相传递，并允许其中一个计算结果依赖于另外一个的结果，而非对共享数据的显式访问。
+
+    - 例子，函数化编程的快速排序，顺序版（递归实现）：
+        ```cpp
+        template<typename T>
+        std::list<T> sequential_quick_sort(std::list<T> input){
+            if(input.empty())   return input;
+
+            std::list<T> ans;
+            // 将输入列表的首个元素放入 ans 中
+            ans.splice(ans.begin(), input, input.begin());
+            // 获取轴值 pivot
+            T const& pivot = *ans.begin();
+
+            // 对列表重置，返回一个指向首元素的迭代器
+            auto divide_point = std::partition(input.begin(), input.end(), 
+                                [&](T const& t){return t < pivit;});
+
+            std::list<T> lower_part;
+            lower_part.splice(lower_part.end(), input, input.begin(),                           divide_point);
+            auto new_lower(sequential_quick_sort(std::move(lower_part)));
+            auto new_higher(sequential_quick_sort(std::move(input)));
+
+            ans.splice(ans.end(), new_higher);    // 插入到 pivot 后边
+            ans.splice(ans.begin(), new_lower);   // 插入到 pivot 前边
+
+            return ans;
+        }
+        ```
+
+        __函数化编程快速排序，并行版（使用期望，递归实现）__：
+        ```cpp
+        template<typename T>
+        std::list<T> parallel_quick_sort(std::list<T> input){
+            if(input.empty())   return input;
+
+            std::list<T> ans;
+            ans.splice(ans.begin(), input, input.begin());
+            T const& pivot = *result.begin();
+
+            auto divide_point = std::partition(input.begin(), input.end(),
+                                [&](T const& t){return t < pivot;});
+            
+            std::list<T> lower_part;
+            lower_part.splice(lower_part.end(), input, input.begin(),
+                                divide_point);
+            
+            // 当前线程对 lower 部分，交给另一个线程对其进行排序
+            std::future<std::list<T>> new_lower(
+                                    std::async(&parallel_quick_sort<T>,
+                                    std::move(lower_part))
+                                    );
+            
+            // higher 部分，仍使用递归方式进行排序
+            auto new_higher(parallel_quick_sort(std::move(input)));
+
+            ans.splice(ans.end(), new_higher);
+            ans.splice(ans.begin(), new_lower.get());   // 从 future 获取结果
+
+            return ans;
+        }
+        ```
+        最后对 lower 部分，需要调用 future::get() 函数去检索数值，如果未计算完，会等待该后台任务完成（线程同步），并且将结果移入 `splice()` 调用中。  
+        有一个问题是，虽然使用了 `std::async`，进行异步调用，但是 `std::partition` 做了很多工作，这里仍然是顺序调用。但这样也已经足够好了。
+    
+    - 因为避开了共享易变数据，函数化编程可算作是并发编程的范型；并且也是通讯顺序进程(CSP,Communicating Sequential Processer[3],)的范型，这里线程理论上是完全分开的，也就是没有共享数据，但是有通讯通道允许信息在不同线程间进行传递。这种范型被Erlang语言所采纳，并且在MPI(Message Passing Interface，消息传递接口)上常用来做C和C++的高性能运算。
 
 
+
+2. __使用消息传递的同步操作__
+
+    - __通讯顺序进程(CSP,Communicating Sequential Processer)__：当没有共享数据，每个线程就可以进行独立思考，其行为纯粹基于其所接收到的信息。每个线程就都有一个状态机：当线程收到一条信息，它将会以某种方式更新其状态，并且可能向其他线程发出一条或多条信息，对于消息的处理依赖于线程的初始化状态。
+
+    - __真正通讯顺序处理是没有共享数据的，所有消息都是通过消息队列传递__，但是因为C++线程共享一块地址空间，所以达不到真正通讯顺序处理的要求。这里就需要有一些约定了：作为一款应用或者是一个库的作者，我们有责任确保在我们的实现中，线程不存在共享数据。当然，为了线程间的通信，消息队列是必须要共享的，具体的细节可以包含在库中。
+
+    - 例子，ATM机逻辑类的实现，这里所有信息传递所需的同步，完全包含在“信息传递”库中。
+        - ATM机的状态机简化模型    
+            <div align="center">
+            <img src="./pics/atm.png" width="600" align=center />
+            <br><br>
+            </div>
+
+        - 消息传递框架与完整的ATM示例
+            
 
