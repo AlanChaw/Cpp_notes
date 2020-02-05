@@ -10,6 +10,11 @@
 
 template<typename T>
 class thread_safe_queue{
+
+    std::queue<T> q;
+    mutable std::mutex mtx;
+    std::condition_variable cond;
+
 public:
     thread_safe_queue()
         : q(std::queue<T>()) {}
@@ -78,10 +83,5 @@ public:
         std::lock_guard<std::mutex> lk(mtx);
         return q.empty();
     }
-    
 
-private:
-    std::queue<T> q;
-    mutable std::mutex mtx;
-    std::condition_variable cond;
 };
